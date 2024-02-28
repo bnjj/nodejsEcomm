@@ -1,27 +1,18 @@
 const express = require('express');
-const faker = require('faker');
 
+const ProductsService = require('./../services/productsService');
+const validatorHandler = require('./../middlewares/validatorhandler');
+const { createProductSchema, updateProductSchema, getProductSchema } = require('./../schemas/productSchema');
 const router = express.Router();
 
+const service = new ProductsService();
 
-router.get('', (req, res) => {
 
-  const productos = [];
-  const { size } = req.query;
-  const limit = size || 10
-  for(let i = 0 ; i < limit ; i++)
-  {
-    productos.push(
-      {
 
-        name : faker.commerce.productName(),
-        price : parseInt(faker.commerce.price(), 10),
-        image : faker.image.imageUrl()
+router.get('', async (req, res) => {
 
-      }
-    )
-  }
-  res.json(productos)
+  const products =await service.find()
+  res.json(products)
 
 })
 
@@ -30,19 +21,20 @@ router.get('/filter', (req,res) =>
   res.send('Yo soy un filter');
 });
 
-router.get('/:id', (req, res) => {
+router.get('/:id',
+  validatorHandler(getProductSchema, 'params'),
+  async (req, res, next) => {
 
-  var producto = productos[req.params.id-1];
-  if (producto) {
-  res.json(productos);
+  try {
+
+    const { id } = req.params;
+    const product =await service.findOne(id);
+    res.json(product);
+
+  } catch(error) {
+      next(error);
   }
-  else
-  {
-
-    return res.status(404).send('producto no existe');
-  }
-
-})
+});
 
 
 
@@ -51,41 +43,72 @@ router.get('/:id', (req, res) => {
 
 
 
+  router.post('/',
+  validatorHandler(createProductSchema, 'body'),
+  async (req, res) => {
+
+    const body = req.body
+
+    const newProduct =await service.create(body);
 
 
 
 
-/* app.post('/productos', (req, res) => {
-  var newProducto = {
-    producto :req.body.producto,
-    precio: req.body.precio
-    }
+    res.status(201).json({
 
-    clientes.push(newProducto);
-    res.json(productos);
+      message: 'created',
+      data: newProduct
 
 
-}) */
+    });
 
+
+  })
+
+  router.patch('/:id',
+  validatorHandler(getProductSchema, 'params'),
+  validatorHandler(updateProductSchema , 'body'),
+  async (req, res) => {
+
+  try {
+    const { id } = req.params
+    const body = req.body
+    const product =await service.update(id,body);
+
+    res.json(product);
+      }
+  catch(error) {
+    res.status(404).json({
+    message :error.message
+  })
+}
+
+
+
+  })
+/*
 router.put("/:id", function(req, res) {
 
 
      var productoid = req.params.id;
 
      var productoModificar = {
-      producto:  req.body.producto,
-      precio: req.body.precio
+      name:  req.body.producto,
+      price: req.body.precio,
+      img : '404'
       }
 
      productos[productoid]=productoModificar;
      res.end( JSON.stringify(productos));
 
-})
+}) */
 
-router.delete('/:id', (req, res) => {
-  const productoId = parseInt(req.params.id);
-  productos = productos.filter(productos => productos.id !== productoId);
-  res.status(204).end();
+router.delete('/:id',
+  validatorHandler(getProductSchema,'params'),
+  async (req, res) => {
+  const { id } = req.params.id
+  const rta =await service.delete(id);
+  res.json(rta);
 });
 
 
