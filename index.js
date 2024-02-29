@@ -5,7 +5,7 @@ const cors = require('cors');
 const { boomErrorHandler,logErrors,errorHandler } = require('./middlewares/errorhandler');
 
 const app = express();
-const port = 8000;
+const port = process.env.port || 3000;
 
 app.use(express.json());
 
